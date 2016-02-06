@@ -1,7 +1,9 @@
 RV
 ---
 
-`rv` is a quick AWS EC2 instance resolver
+`rv` is a quick AWS EC2 instance resolver. Take your cloud with you wherever you are.
+
+![rv](http://i.imgur.com/XHNglPk.jpg?1)
 
 ## Usage
 ```BASH
