@@ -31,5 +31,5 @@ Runs the given command with the named instances replaced for the ips.
 Lists all the current instances.
 
 ## Install
-`brew tap ebenoist/rv`
-`brew install rv`
+* `brew tap ebenoist/rv`
+* `brew install rv`
