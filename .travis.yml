@@ -1,0 +1,15 @@
+language: go
+install:
+- go get github.com/constabulary/gb/...
+go:
+- 1.5
+before_deploy:
+- make release
+- tar cvfz binaries.tar.gz bin/* -C bin .
+deploy:
+  provider: releases
+  api_key:
+    secure: XoKaxJZO2QHiHkRzPGbFX9XVTSmYNx1lqE03UYgfBcyqGI7beHYpkxuF8zffrCkoYbQvR52Kk/p4u1YI81QvIFrTp5WgO8mVpgUjUzgMADwHXHjO8LQ1PMheTj7P1q7D1bVZBcw8Rbe6KC/Ub9KgPfdKrN90m2jao9NNzp1UB+xYwemHVGsiPhDqEQzwrRVrFWe1CUwDxPZoAntYhsD8/z6LpHAA9ld6KdHebCHB2TAvI1MQuoYdmvQdpTFyYTPdF/cKuxU4wa4JE62ihffTdKtEkH+XpQpPAC+PE/yau6gkWpACt1J7JDMdJm4BxjF0EkvwV0quGSsqKd1hwymHeeu2TROT0SvjroFTHG8M4Zc3TbRVBs2zMAoYVK3MCCnma28GkE2eBMo7Uvnh60UrlBgtKuXQEWSPFV5+mSLozoVDmUoj3GqY4pUnXzITQq5ZiUIQEsxgDevKaGX8rnlX4Oa0CCMkKqVTDK5Ot262rd1AM/8/gWlL31+zvcv7+je6J84DV2MOlrJOADv5nijBumAgCCcZF6XbrwBrNpzNsz0sUYOjXJWOsfS8tvqu3CSUDBOfR1BdpKUtyB8Ry66SW3q0mBNcDjbqBcdYRRq2T5z1yK80fYJiHQ47XNuCRVz2Oq8zQ0Zph5Zn/3VhVcuJU0xrXTJwiL5fRu3fU1Tk9e8=
+  file: binaries.tar.gz
+  on:
+    tags: true
