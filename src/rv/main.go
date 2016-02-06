@@ -62,7 +62,7 @@ func CMD(c *cli.Context) {
 	err := cmd.Run()
 
 	if err != nil {
-		panic(err)
+		os.Exit(1)
 	}
 }
 
@@ -79,51 +79,65 @@ func List(c *cli.Context) {
 	writer.Flush()
 }
 
-func allNodes() NodeList {
-	client := ec2.New(session.New())
-	params := &ec2.DescribeInstancesInput{}
-	resp, err := client.DescribeInstances(params)
-
-	if err != nil {
-		panic(err)
-	}
-
-	list := NodeList{}
-
-	for _, reservation := range resp.Reservations {
-		for _, instance := range reservation.Instances {
-			var name string
-			if instance.PrivateIpAddress == nil {
-				continue
-			}
-			ip := *instance.PrivateIpAddress
-
-			for _, tag := range instance.Tags {
-				if *tag.Key == "Name" {
-					name = *tag.Value
-				}
-			}
-
-			if name != "" {
-				list[name] = ip
-			} else {
-				list[*instance.InstanceId] = ip
-			}
-		}
-	}
-
-	return list
-}
-
 func NodeIP(c *cli.Context) {
 	nodes := allNodes()
 	node := c.Args().First()
 	ip := nodes[node]
 
 	if node == "" {
-		msg := fmt.Sprintf("Node with name %s was not found", node)
-		panic(msg)
+		fmt.Printf("Node with name %s was not found\n", node)
+		os.Exit(1)
 	}
 
 	fmt.Println(ip)
+}
+
+func allNodes() NodeList {
+	client := ec2.New(session.New())
+	params := &ec2.DescribeInstancesInput{}
+	resp, err := client.DescribeInstances(params)
+
+	if err != nil {
+		fmt.Printf("Error connecting to AWS: %s\n", err)
+		os.Exit(1)
+
+		return nil
+	}
+
+	list := NodeList{}
+
+	for _, reservation := range resp.Reservations {
+		for _, instance := range reservation.Instances {
+			ip := ipAddr(instance)
+			name := instanceName(instance)
+
+			list[name] = ip
+		}
+	}
+
+	return list
+}
+
+func ipAddr(instance *ec2.Instance) string {
+	if instance.PrivateIpAddress == nil {
+		return "UNASSIGNED"
+	} else {
+		return *instance.PrivateIpAddress
+	}
+}
+
+func instanceName(instance *ec2.Instance) string {
+	var name string
+
+	for _, tag := range instance.Tags {
+		if *tag.Key == "Name" {
+			name = *tag.Value
+		}
+	}
+
+	if name != "" {
+		return name
+	} else {
+		return *instance.InstanceId
+	}
 }
