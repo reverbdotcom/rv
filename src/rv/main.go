@@ -9,8 +9,8 @@ import (
 func main() {
 	app := cli.NewApp()
 	app.Name = "rv"
-	app.Usage = "node resolver"
-	app.Version = "0.0.2"
+	app.Usage = "aws instance resolver"
+	app.Version = "0.0.3"
 
 	stdout = os.Stdout
 
