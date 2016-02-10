@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"sort"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -56,8 +57,10 @@ func List(c *cli.Context) {
 	writer := tabwriter.NewWriter(stdout, 0, 4, 2, ' ', 0)
 	fmt.Fprintln(writer, "Name\tPrivate IP Address")
 
-	for name, ip := range nodes {
-		fmt.Fprintf(writer, "%s\t%s\n", name, ip)
+	nodeNames := sortedNodeNames(nodes)
+
+	for _, name := range nodeNames {
+		fmt.Fprintf(writer, "%s\t%s\n", name, nodes[name])
 	}
 
 	writer.Flush()
@@ -76,6 +79,17 @@ func NodeIP(c *cli.Context) {
 	}
 
 	fmt.Fprintln(stdout, ip)
+}
+
+func sortedNodeNames(nodeList NodeList) []string {
+	names := make([]string, len(nodeList))
+	i := 0
+	for name, _ := range nodeList {
+		names[i] = name
+		i++
+	}
+	sort.Strings(names)
+	return names
 }
 
 func allNodes() NodeList {
