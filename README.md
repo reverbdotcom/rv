@@ -59,3 +59,15 @@ rv will cache responses from AWS for a minute. Running the command with the --cl
 ## Install
 * `brew tap ebenoist/rv`
 * `brew install rv`
+
+You will also need to tell the AWS client which region to default to, you can do this by exporting AWS_REGION.
+
+For bash:
+```
+$ echo 'export AWS_REGION=us-east-1 >> ~/.bashrc
+```
+
+For zsh:
+```
+$ echo 'export AWS_REGION=us-east-1 >> ~/.zshrc
+```
