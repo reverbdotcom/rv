@@ -64,10 +64,10 @@ You will also need to tell the AWS client which region to default to, you can do
 
 For bash:
 ```
-$ echo 'export AWS_REGION=us-east-1 >> ~/.bashrc
+$ echo 'export AWS_REGION=us-east-1' >> ~/.bashrc
 ```
 
 For zsh:
 ```
-$ echo 'export AWS_REGION=us-east-1 >> ~/.zshrc
+$ echo 'export AWS_REGION=us-east-1' >> ~/.zshrc
 ```
