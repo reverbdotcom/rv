@@ -10,9 +10,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "rv"
 	app.Usage = "aws instance resolver"
-	app.Version = "0.0.3"
-
-	stdout = os.Stdout
+	app.Version = "0.0.4"
 
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{

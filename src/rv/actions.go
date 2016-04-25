@@ -17,7 +17,8 @@ import (
 
 const CACHE_TTL = 60 * time.Second
 
-var stdout io.Writer
+var stdout io.Writer = os.Stdout
+var stderr io.Writer = os.Stderr
 
 type NodeList map[string]string
 
@@ -39,6 +40,7 @@ func CMD(c *cli.Context) {
 
 	cmd := exec.Command(parts[0], parts[1:]...)
 	cmd.Stdout = stdout
+	cmd.Stderr = stderr
 	cmd.Stdin = os.Stdin
 
 	err := cmd.Run()
