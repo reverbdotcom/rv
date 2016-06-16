@@ -70,7 +70,6 @@ func Test_CMD(t *testing.T) {
 	if !strings.Contains(actual, "127.0.0.1") {
 		t.Errorf("Got %s", actual)
 	}
-
 }
 
 // I have no clue how to actually test this behavior. It _does_ work...

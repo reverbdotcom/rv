@@ -84,12 +84,12 @@ func NodeIP(c *cli.Context) {
 }
 
 func sortedNodeNames(nodeList NodeList) []string {
-	names := make([]string, len(nodeList))
-	i := 0
+	var names []string
+
 	for name, _ := range nodeList {
-		names[i] = name
-		i++
+		names = append(names, name)
 	}
+
 	sort.Strings(names)
 	return names
 }
@@ -116,13 +116,31 @@ func allNodes() NodeList {
 		for _, instance := range reservation.Instances {
 			ip := ipAddr(instance)
 			name := instanceName(instance)
-
-			list[name] = ip
+			list[uniqueName(list, name)] = ip
 		}
 	}
 
 	cacheList(list)
 	return list
+}
+
+func uniqueName(list NodeList, originalName string) string {
+	name := originalName
+
+	_, exists := list[originalName]
+	var postfix int
+
+	for exists {
+		postfix++
+		postfixName := fmt.Sprintf("%s-%d", originalName, postfix)
+		_, exists = list[postfixName]
+
+		if !exists {
+			name = postfixName
+		}
+	}
+
+	return name
 }
 
 func ipAddr(instance *ec2.Instance) string {
