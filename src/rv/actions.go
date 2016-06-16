@@ -19,7 +19,6 @@ const CACHE_TTL = 60 * time.Second
 var stdout io.Writer = os.Stdout
 var stderr io.Writer = os.Stderr
 
-
 type Node struct {
   id   string
   ip   string

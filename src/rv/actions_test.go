@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 	"testing"
-
-	"github.com/codegangsta/cli"
+  
+  "github.com/codegangsta/cli"
 )
 
 func NewContext(args ...string) *cli.Context {
@@ -27,9 +27,21 @@ func StubOutput() (*bytes.Buffer, *bytes.Buffer) {
 }
 
 func Setup() {
+  nodeA := Node{
+    id: "abc123",
+    ip: "127.0.0.1",
+    name: "b-node.local",
+  }
+
+  nodeB := Node{
+    id: "xyz123",
+    ip: "127.0.0.2",
+    name: "a-node.local",
+  }
+
 	list := NodeList{
-		"b-node.local": "127.0.0.1",
-		"a-node.local": "127.0.0.2",
+    nodeA,
+    nodeB,
 	}
 
 	cacheList(list)
@@ -48,8 +60,8 @@ func Test_List(t *testing.T) {
 	List(NewContext(""))
 
 	actual := output.String()
-
-	bIndex := strings.Index(actual, "b-node.local")
+	
+  bIndex := strings.Index(actual, "b-node.local")
 	aIndex := strings.Index(actual, "a-node.local")
 
 	if bIndex == -1 || aIndex == -1 {
