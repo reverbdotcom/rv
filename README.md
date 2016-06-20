@@ -57,7 +57,7 @@ mynode-2.local                   127.0.0.1
 rv will cache responses from AWS for a minute. Running the command with the --clear-cache flag will ensure a cache miss.
 
 ## Install
-* `brew tap ebenoist/rv`
+* `brew tap reverbdotcom/rv`
 * `brew install rv`
 
 You will also need to tell the AWS client which region to default to, you can do this by exporting AWS_REGION.
