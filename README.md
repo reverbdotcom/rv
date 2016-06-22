@@ -72,6 +72,13 @@ For zsh:
 $ echo 'export AWS_REGION=us-east-1' >> ~/.zshrc
 ```
 
+## Release
+
+1. Create a new github release with a version that starts with 'v' such as 'v0.0.7'
+2. The travis build for this repository will automatically tar up a binaries.tar.gz and attach it to a github release.
+
+If the travis build is not working correctly, you can run the same binary tar creation script from the .travis.yml (before_deploy) and upload the binaries to the release manually on GitHub.
+
 ## LICENSE
 
 Copyright 2016 Reverb.com, LLC
