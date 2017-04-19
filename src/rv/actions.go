@@ -5,7 +5,6 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"sort"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -20,17 +19,23 @@ const CACHE_TTL = 60 * time.Second
 var stdout io.Writer = os.Stdout
 var stderr io.Writer = os.Stderr
 
-type NodeList map[string]string
+type Node struct {
+  id   string
+  ip   string
+  name string
+}
+
+type NodeList []Node
 
 func CMD(c *cli.Context) {
 	checkCache(c)
 
 	args := c.Args().First()
 
-	hosts := []string{}
+  var hosts []string
 
-	for name, ip := range allNodes() {
-		hosts = append(hosts, name, ip)
+	for _, v := range allNodes() {
+		hosts = append(hosts, v.ip)
 	}
 
 	r := strings.NewReplacer(hosts...)
@@ -57,12 +62,10 @@ func List(c *cli.Context) {
 	nodes := allNodes()
 
 	writer := tabwriter.NewWriter(stdout, 0, 4, 2, ' ', 0)
-	fmt.Fprintln(writer, "Name\tPrivate IP Address")
+	fmt.Fprintln(writer, "Name\tInstance ID\tPrivate IP Address")
 
-	nodeNames := sortedNodeNames(nodes)
-
-	for _, name := range nodeNames {
-		fmt.Fprintf(writer, "%s\t%s\n", name, nodes[name])
+	for _, v := range nodes {
+		fmt.Fprintf(writer, "%s\t%s\t%s\n", v.name, v.id, v.ip)
 	}
 
 	writer.Flush()
@@ -73,25 +76,16 @@ func NodeIP(c *cli.Context) {
 
 	nodes := allNodes()
 	node := c.Args().First()
-	ip := nodes[node]
 
-	if ip == "" {
-		fmt.Printf("Node with name %s was not found\n", node)
-		os.Exit(1)
-	}
+  for _,v := range nodes {
+    if v.ip == node {
+	    fmt.Fprintln(stdout, v.ip)
+    } else if v.ip == "" {
+		  fmt.Printf("Node with name %s was not found\n", node)
+		  os.Exit(1)
+    }
+  }
 
-	fmt.Fprintln(stdout, ip)
-}
-
-func sortedNodeNames(nodeList NodeList) []string {
-	var names []string
-
-	for name, _ := range nodeList {
-		names = append(names, name)
-	}
-
-	sort.Strings(names)
-	return names
 }
 
 func allNodes() NodeList {
@@ -114,9 +108,10 @@ func allNodes() NodeList {
 
 	for _, reservation := range resp.Reservations {
 		for _, instance := range reservation.Instances {
+			id := instanceId(instance)
 			ip := ipAddr(instance)
 			name := instanceName(instance)
-			list[uniqueName(list, name)] = ip
+      list = append(list, Node{id, ip, name})
 		}
 	}
 
@@ -124,23 +119,12 @@ func allNodes() NodeList {
 	return list
 }
 
-func uniqueName(list NodeList, originalName string) string {
-	name := originalName
-
-	_, exists := list[originalName]
-	var postfix int
-
-	for exists {
-		postfix++
-		postfixName := fmt.Sprintf("%s-%d", originalName, postfix)
-		_, exists = list[postfixName]
-
-		if !exists {
-			name = postfixName
-		}
+func instanceId(instance *ec2.Instance) string {
+	if instance.InstanceId == nil {
+		return "UNASSIGNED"
+	} else {
+		return *instance.InstanceId
 	}
-
-	return name
 }
 
 func ipAddr(instance *ec2.Instance) string {
