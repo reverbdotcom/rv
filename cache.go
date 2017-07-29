@@ -9,14 +9,17 @@ import (
 	"github.com/codegangsta/cli"
 )
 
-func cachedList() NodeList {
-	fs, err := os.Stat("/tmp/rv-cache")
+const CachePath = "/tmp/rv-cache"
+const CacheTTL = 60 * time.Second
+
+func cachedList() []*Node {
+	fs, err := os.Stat(CachePath)
 	if err != nil {
 		return nil
 	}
 
-	if time.Now().Sub(fs.ModTime()) < CACHE_TTL {
-		f, err := os.Open("/tmp/rv-cache")
+	if time.Now().Sub(fs.ModTime()) < CacheTTL {
+		f, err := os.Open(CachePath)
 		if err != nil {
 			return nil
 		}
@@ -24,19 +27,19 @@ func cachedList() NodeList {
 		r := bufio.NewReader(f)
 		dec := gob.NewDecoder(r)
 
-		var unmarshalled NodeList
+		var unmarshalled []*Node
 		dec.Decode(&unmarshalled)
 
 		return unmarshalled
 	} else {
-		os.Remove("/tmp/rv-cache")
+		os.Remove(CachePath)
 	}
 
 	return nil
 }
 
-func cacheList(list NodeList) {
-	f, err := os.Create("/tmp/rv-cache")
+func cacheList(list []*Node) {
+	f, err := os.Create(CachePath)
 	if err != nil {
 		return
 	}
@@ -47,13 +50,12 @@ func cacheList(list NodeList) {
 	enc := gob.NewEncoder(w)
 
 	enc.Encode(list)
-
 	w.Flush()
 }
 
 func checkCache(c *cli.Context) {
 	clearCache := c.GlobalBool("clear-cache")
 	if clearCache {
-		os.Remove("/tmp/rv-cache")
+		os.Remove(CachePath)
 	}
 }

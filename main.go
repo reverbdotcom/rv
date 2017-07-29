@@ -21,6 +21,11 @@ func main() {
 
 	app.Commands = []cli.Command{
 		{
+			Name:    "grep",
+			Aliases: []string{"g"},
+			Action:  Grep,
+		},
+		{
 			Name:    "ip",
 			Aliases: []string{"i"},
 			Action:  NodeIP,

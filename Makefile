@@ -8,5 +8,5 @@ test:
 		@go test
 
 release:
-	@env GOOS=linux go build
-	@env GOOS=darwin go build
+	@env GOOS=linux go build -o bin/rv.linux
+	@env GOOS=darwin go build -o bin/rv.darwin

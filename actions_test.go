@@ -27,16 +27,22 @@ func StubOutput() (*bytes.Buffer, *bytes.Buffer) {
 }
 
 func Setup() {
-	list := NodeList{
-		"b-node.local": "127.0.0.1",
-		"a-node.local": "127.0.0.2",
+	list := []*Node{
+		&Node{
+			Name: "b-node.local",
+			IP:   "127.0.0.1",
+		},
+		&Node{
+			Name: "a-node.local",
+			IP:   "127.0.0.2",
+		},
 	}
 
 	cacheList(list)
 }
 
 func TearDown() {
-	os.Remove("/tmp/rv-cache")
+	os.Remove(CachePath)
 }
 
 func Test_List(t *testing.T) {
@@ -54,8 +60,6 @@ func Test_List(t *testing.T) {
 
 	if bIndex == -1 || aIndex == -1 {
 		t.Errorf("Did not return both nodes. Actual: %s", actual)
-	} else if aIndex > bIndex {
-		t.Errorf("Nodes not sorted. Actual: %s", actual)
 	}
 }
 
@@ -72,18 +76,21 @@ func Test_CMD(t *testing.T) {
 	}
 }
 
-// I have no clue how to actually test this behavior. It _does_ work...
-func XTest_CMDErrorOutput(t *testing.T) {
+func Test_Grep(t *testing.T) {
 	Setup()
 	defer TearDown()
 
-	_, errout := StubOutput()
+	output, _ := StubOutput()
 
-	CMD(NewContext("echo", "foo", "1>&2"))
+	Grep(NewContext("^a.*"))
 
-	actual := errout.String()
-	if !strings.Contains(actual, "foo") {
+	actual := output.String()
+	if !strings.Contains(actual, "127.0.0.2") {
 		t.Errorf("Got %s", actual)
+	}
+
+	if strings.Contains(actual, "127.0.0.1") {
+		t.Errorf("Got %s, but expected it to be filtered out", actual)
 	}
 }
 

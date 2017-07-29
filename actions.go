@@ -5,34 +5,41 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"regexp"
 	"sort"
 	"strings"
 	"text/tabwriter"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/codegangsta/cli"
 )
 
-const CACHE_TTL = 60 * time.Second
-
 var stdout io.Writer = os.Stdout
 var stderr io.Writer = os.Stderr
 
-type NodeList map[string]string
+type Node struct {
+	Name string
+	ID   string
+	IP   string
+}
 
 func CMD(c *cli.Context) {
 	checkCache(c)
-
 	args := c.Args().First()
 
 	hosts := []string{}
+	list := allNodes()
 
-	for name, ip := range allNodes() {
-		hosts = append(hosts, name, ip)
+	// reverse the sort to match longer names first
+	// i.e. 'node-1' should be replaced before 'node'
+	sort.Slice(list, func(i, j int) bool {
+		return list[i].Name > list[j].Name
+	})
+
+	for _, node := range list {
+		hosts = append(hosts, node.Name, node.IP)
 	}
-
 	r := strings.NewReplacer(hosts...)
 	argsWithIPs := fmt.Sprintf(r.Replace(args))
 
@@ -51,50 +58,58 @@ func CMD(c *cli.Context) {
 	}
 }
 
-func List(c *cli.Context) {
+func Grep(c *cli.Context) {
 	checkCache(c)
-
 	nodes := allNodes()
 
+	r := c.Args().First()
+	matcher := regexp.MustCompile(r)
+
+	var matches []*Node
+	for _, n := range nodes {
+		if matcher.MatchString(n.Name) {
+			matches = append(matches, n)
+		}
+	}
+
+	printAll(matches)
+}
+
+func printAll(nodes []*Node) {
 	writer := tabwriter.NewWriter(stdout, 0, 4, 2, ' ', 0)
-	fmt.Fprintln(writer, "Name\tPrivate IP Address")
+	fmt.Fprintln(writer, "Name\tIP Address\tInstance ID")
 
-	nodeNames := sortedNodeNames(nodes)
-
-	for _, name := range nodeNames {
-		fmt.Fprintf(writer, "%s\t%s\n", name, nodes[name])
+	for _, node := range nodes {
+		fmt.Fprintf(writer, "%s\t%s\t%s\n", node.Name, node.IP, node.ID)
 	}
 
 	writer.Flush()
+}
+
+func List(c *cli.Context) {
+	checkCache(c)
+	nodes := allNodes()
+	printAll(nodes)
 }
 
 func NodeIP(c *cli.Context) {
 	checkCache(c)
 
 	nodes := allNodes()
-	node := c.Args().First()
-	ip := nodes[node]
+	nodeName := c.Args().First()
 
-	if ip == "" {
-		fmt.Printf("Node with name %s was not found\n", node)
-		os.Exit(1)
+	for _, node := range nodes {
+		if node.Name == nodeName {
+			fmt.Fprintln(stdout, node.IP)
+			return
+		}
 	}
 
-	fmt.Fprintln(stdout, ip)
+	fmt.Printf("Node with name %s was not found\n", nodeName)
+	os.Exit(1)
 }
 
-func sortedNodeNames(nodeList NodeList) []string {
-	var names []string
-
-	for name, _ := range nodeList {
-		names = append(names, name)
-	}
-
-	sort.Strings(names)
-	return names
-}
-
-func allNodes() NodeList {
+func allNodes() []*Node {
 	if list := cachedList(); list != nil {
 		return list
 	}
@@ -106,41 +121,48 @@ func allNodes() NodeList {
 	if err != nil {
 		fmt.Printf("Error connecting to AWS: %s\n", err)
 		os.Exit(1)
-
 		return nil
 	}
 
-	list := NodeList{}
+	var list []*Node
 
 	for _, reservation := range resp.Reservations {
 		for _, instance := range reservation.Instances {
 			ip := ipAddr(instance)
 			name := instanceName(instance)
-			list[uniqueName(list, name)] = ip
+			node := &Node{
+				ID:   *instance.InstanceId,
+				Name: name,
+				IP:   ip,
+			}
+
+			list = append(list, node)
 		}
 	}
 
+	sort.Slice(list, func(i, j int) bool {
+		return list[i].Name <= list[j].Name
+	})
+
+	uniqueNames(list)
 	cacheList(list)
 	return list
 }
 
-func uniqueName(list NodeList, originalName string) string {
-	name := originalName
+func uniqueNames(list []*Node) {
+	ctr := 1
+	var lastName string
 
-	_, exists := list[originalName]
-	var postfix int
-
-	for exists {
-		postfix++
-		postfixName := fmt.Sprintf("%s-%d", originalName, postfix)
-		_, exists = list[postfixName]
-
-		if !exists {
-			name = postfixName
+	for _, node := range list {
+		if node.Name == lastName {
+			lastName = node.Name
+			node.Name = fmt.Sprintf("%s-%d", node.Name, ctr)
+			ctr++
+		} else {
+			lastName = node.Name
+			ctr = 1
 		}
 	}
-
-	return name
 }
 
 func ipAddr(instance *ec2.Instance) string {
@@ -160,9 +182,9 @@ func instanceName(instance *ec2.Instance) string {
 		}
 	}
 
-	if name != "" {
-		return name
-	} else {
+	if name == "" {
 		return *instance.InstanceId
 	}
+
+	return name
 }

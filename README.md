@@ -8,24 +8,25 @@ RV
 ## Usage
 ```BASH
 NAME:
-   rv - node resolver
+   rv - aws instance resolver
 
 USAGE:
    rv [global options] command [command options] [arguments...]
 
 VERSION:
-   0.0.3
+   0.0.4
 
 COMMANDS:
-   ip, i
-   list, l
-   cmd, c
-   help, h	Shows a list of commands or help for one command
+     grep, g
+     ip, i
+     list, l
+     cmd, c
+     help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
-   --clear-cache, -c	ensure rv cache is cleared
-   --help, -h		show help
-   --version, -v	print the version
+   --clear-cache, -c  ensure rv cache is cleared
+   --help, -h         show help
+   --version, -v      print the version
 ```
 
 ### ip
@@ -52,11 +53,22 @@ mynode.local                     127.0.0.1
 mynode-2.local                   127.0.0.1
 ```
 
+### grep
+Lists all the current instances that matches the input.
+```
+$ rv g ^my.*
+
+Name                             Private IP Address
+mynode.local                     127.0.0.1
+mynode-2.local                   127.0.0.1
+```
 
 ### cache
+
 rv will cache responses from AWS for a minute. Running the command with the --clear-cache flag will ensure a cache miss.
 
 ## Install
+
 * `brew tap reverbdotcom/rv`
 * `brew install rv`
 
