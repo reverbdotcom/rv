@@ -1,12 +1,12 @@
 .PHONY: all test
 
-all: build test
-build:
-		@gb build
+all: install test
+install:
+		@go install
 
 test:
-		@gb test
+		@go test
 
 release:
-	@env GOOS=linux gb build
-	@env GOOS=darwin gb build
+	@env GOOS=linux go build
+	@env GOOS=darwin go build
