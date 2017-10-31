@@ -22,5 +22,9 @@
 
 
 [[constraint]]
-  name = "github.com/codegangsta/cli"
+  name = "github.com/urfave/cli"
   version = "1.19.1"
+
+[[constraint]]
+  name = "github.com/hashicorp/vault"
+  version = "0.8.3"

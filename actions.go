@@ -12,7 +12,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/codegangsta/cli"
+	"github.com/urfave/cli"
 )
 
 var stdout io.Writer = os.Stdout
