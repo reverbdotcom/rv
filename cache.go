@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/codegangsta/cli"
+	"github.com/urfave/cli"
 )
 
 const CachePath = "/tmp/rv-cache"
