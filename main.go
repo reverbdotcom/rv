@@ -3,13 +3,17 @@ package main
 import (
 	"os"
 
-	"github.com/codegangsta/cli"
+	"github.com/urfave/cli"
+
+	"github.com/reverbdotcom/rv/pkg/vault"
+	"github.com/reverbdotcom/rv/pkg/iam"
+	"github.com/reverbdotcom/rv/pkg/rds"
 )
 
 func main() {
 	app := cli.NewApp()
 	app.Name = "rv"
-	app.Usage = "aws instance resolver"
+	app.Usage = "reverb aws tool"
 	app.Version = "0.0.4"
 
 	app.Flags = []cli.Flag{
@@ -41,6 +45,10 @@ func main() {
 			Action:  CMD,
 		},
 	}
+
+	vault.RegisterCommands(app)
+	iam.RegisterCommands(app)
+	rds.RegisterCommands(app)
 
 	app.Run(os.Args)
 }
