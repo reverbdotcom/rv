@@ -1,4 +1,4 @@
-package vault
+package main
 
 import (
 	"github.com/urfave/cli"
@@ -18,7 +18,6 @@ import (
 //	"github.com/aws/aws-sdk-go/aws/session"
 	api "github.com/hashicorp/vault/api"
 	"github.com/aws/aws-sdk-go/service/sts"
-	"github.com/reverbdotcom/rv/pkg/iam"
 )
 
 type RoleTokens map[string]Token
@@ -55,7 +54,7 @@ func saveToken(role string, token Token) {
 	ioutil.WriteFile(configFileName(), jsonOut, 0400)
 }
 
-func RegisterCommands(app *cli.App) {
+func RegisterVaultCommands(app *cli.App) {
 
 	app.Commands = append(app.Commands, cli.Command{
 		Name:		"vault",
@@ -94,7 +93,7 @@ func GetVaultToken(c *api.Client, creds *sts.Credentials, vaultRole string) (str
 		return "", fmt.Errorf("api client is nil")
 	}
 
-	svc, err := iam.NewSTSService(creds)
+	svc, err := NewSTSService(creds)
 
 	if err != nil {
 		return "", err
@@ -142,7 +141,7 @@ func GetVaultToken(c *api.Client, creds *sts.Credentials, vaultRole string) (str
 	return secret.Auth.ClientToken, nil
 }
 
-func ApiClient() (*api.Client, error) {
+func APIClient() (*api.Client, error) {
 	var httpClient *http.Client
 
 	vaultAddress := "https://vault.reverb.com"

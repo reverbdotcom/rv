@@ -1,17 +1,14 @@
-package rds
+package main
 
 import (
 	"github.com/urfave/cli"
 
 	"fmt"
-
 	api "github.com/hashicorp/vault/api"
-
-	"github.com/reverbdotcom/rv/pkg/vault"
-	"github.com/reverbdotcom/rv/pkg/iam"
+	
 )
 
-func RegisterCommands(app *cli.App) {
+func RegisterRDSCommands(app *cli.App) {
 
 	app.Commands = append(app.Commands, cli.Command{
 		Name:		"rds",
@@ -49,21 +46,21 @@ func RegisterCommands(app *cli.App) {
 }
 
 func getInfraDevVaultClient() (*api.Client, error) {
-	c, err := vault.ApiClient()
+	c, err := APIClient()
 	if err != nil {
 		return nil, err
 	}
 
-	token := vault.GetCachedVaultToken("ops-infra-dev")
+	token := GetCachedVaultToken("ops-infra-dev")
 
 	if token == "" {
 
-		creds, err := iam.AssumeRoleCredentials("ops/infra-dev")
+		creds, err := AssumeRoleCredentials("ops/infra-dev")
 		if err != nil {
 			return nil, err
 		}
 
-		token2, err := vault.GetVaultToken(c, creds, "ops-infra-dev")
+		token2, err := GetVaultToken(c, creds, "ops-infra-dev")
 		if err != nil {
 			return nil, err
 		}

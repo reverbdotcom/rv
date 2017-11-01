@@ -1,4 +1,4 @@
-package iam
+package main
 
 import (
 	"github.com/urfave/cli"
@@ -13,7 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 )
 
-func RegisterCommands(app *cli.App) {
+func RegisterIAMCommands(app *cli.App) {
 
 	app.Commands = append(app.Commands, cli.Command{
 		Name:		"iam",
