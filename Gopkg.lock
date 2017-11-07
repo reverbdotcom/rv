@@ -14,6 +14,12 @@
   version = "v1.0"
 
 [[projects]]
+  name = "github.com/fsnotify/fsnotify"
+  packages = ["."]
+  revision = "629574ca2a5df945712d3079857300b5e4da0236"
+  version = "v1.4.2"
+
+[[projects]]
   name = "github.com/go-ini/ini"
   packages = ["."]
   revision = "d3de07a94d22b4a0972deb4b96d790c2c0ce8333"
@@ -68,6 +74,12 @@
   version = "0.2.2"
 
 [[projects]]
+  name = "github.com/magiconair/properties"
+  packages = ["."]
+  revision = "be5ece7dd465ab0765a9682137865547526d1dfb"
+  version = "v1.7.3"
+
+[[projects]]
   branch = "master"
   name = "github.com/mitchellh/go-homedir"
   packages = ["."]
@@ -80,10 +92,46 @@
   revision = "06020f85339e21b2478f756a78e295255ffa4d6a"
 
 [[projects]]
+  name = "github.com/pelletier/go-toml"
+  packages = ["."]
+  revision = "16398bac157da96aa88f98a2df640c7f32af1da2"
+  version = "v1.0.1"
+
+[[projects]]
   branch = "master"
   name = "github.com/sethgrid/pester"
   packages = ["."]
   revision = "0af5bab1e1ea2860c5aef8e77427bab011d774d8"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/spf13/afero"
+  packages = [".","mem"]
+  revision = "5660eeed305fe5f69c8fc6cf899132a459a97064"
+
+[[projects]]
+  name = "github.com/spf13/cast"
+  packages = ["."]
+  revision = "acbeb36b902d72a7a4c18e8f3241075e7ab763e4"
+  version = "v1.1.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/spf13/jwalterweatherman"
+  packages = ["."]
+  revision = "12bd96e66386c1960ab0f74ced1362f66f552f7b"
+
+[[projects]]
+  name = "github.com/spf13/pflag"
+  packages = ["."]
+  revision = "e57e3eeb33f795204c1ca35f56c44f83227c6e66"
+  version = "v1.0.0"
+
+[[projects]]
+  name = "github.com/spf13/viper"
+  packages = ["."]
+  revision = "25b30aa063fc18e48662b86996252eabdcf2f0c7"
+  version = "v1.0.0"
 
 [[projects]]
   name = "github.com/urfave/cli"
@@ -99,13 +147,25 @@
 
 [[projects]]
   branch = "master"
+  name = "golang.org/x/sys"
+  packages = ["unix"]
+  revision = "75813c647272dd855bda156405bf844a5414f5bf"
+
+[[projects]]
+  branch = "master"
   name = "golang.org/x/text"
   packages = ["collate","collate/build","internal/colltab","internal/gen","internal/tag","internal/triegen","internal/ucd","language","secure/bidirule","transform","unicode/bidi","unicode/cldr","unicode/norm","unicode/rangetable"]
   revision = "3cfc6c0d6bf80d724d98c26c4822f4a35d37598e"
 
+[[projects]]
+  branch = "v2"
+  name = "gopkg.in/yaml.v2"
+  packages = ["."]
+  revision = "eb3733d160e74a9c7e442f435eb3bea458e1d19f"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a64dbca726e43fb7c6a3ed32cdf698355b4cf565ba904fed83a504bc6f158bdb"
+  inputs-digest = "2a2efd6918918b3b0cc092b0ed828a8960381a617b686a6bc89db9e5c07f1850"
   solver-name = "gps-cdcl"
   solver-version = 1

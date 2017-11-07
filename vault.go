@@ -3,63 +3,132 @@ package main
 import (
 	"github.com/urfave/cli"
 
-	"fmt"
-	"io/ioutil"
 	"encoding/base64"
 	"encoding/json"
-	"os"
-	"net/url"
+	"fmt"
+	"io/ioutil"
 	"net/http"
+	"net/url"
+	"os"
 	"time"
 
-//	"github.com/aws/aws-sdk-go/aws"
-//	"github.com/aws/aws-sdk-go/aws/credentials"
-//	"github.com/aws/aws-sdk-go/aws/credentials"
-//	"github.com/aws/aws-sdk-go/aws/session"
-	api "github.com/hashicorp/vault/api"
 	"github.com/aws/aws-sdk-go/service/sts"
+	api "github.com/hashicorp/vault/api"
+	"github.com/mitchellh/mapstructure"
 )
 
-type RoleTokens map[string]Token
-
-type Token struct {
-	Token string `json:"token"`
+type VaultToken struct {
+	IamArn     string    `json:"iamArn"`
+	Token      string    `json:"token"`
 	Expiration time.Time `json:"expiration"`
 }
 
-func configFileName() string {
+type RDSEntry struct {
+	Creds     string `json:"creds"`
+	VaultRole string `json:"vaultRole"`
+	IamRole   string `json:"iamRole"`
+	DbName    string `json:"dbName"`
+	Host      string `json:"host"`
+}
+
+type AwsCredentialsMap map[string]AwsCredentials
+
+type VaultTokenMap map[string]VaultToken
+
+type RDSEntryMap map[string]RDSEntry
+
+type Decodeable interface {
+	CacheLocation() string
+}
+
+func (t VaultToken) EncodeToString() string {
+	b, _ := json.Marshal(t)
+	return base64.StdEncoding.EncodeToString(b)
+}
+
+func (c AwsCredentials) EncodeToString() string {
+	b, _ := json.Marshal(c)
+	return base64.StdEncoding.EncodeToString(b)
+}
+
+func (c AwsCredentials) DecodeFromString(s string) AwsCredentials {
+	var token AwsCredentials
+	decoded, _ := base64.StdEncoding.DecodeString(s)
+	json.Unmarshal(decoded, &token)
+	return token
+}
+
+func (t VaultToken) DecodeFromString(s string) VaultToken {
+	var token VaultToken
+	decoded, _ := base64.StdEncoding.DecodeString(s)
+	json.Unmarshal(decoded, &token)
+	return token
+}
+
+func (VaultTokenMap) CacheLocation() string {
+	return "cubbyhole/vault-tokens"
+}
+
+func (RDSEntryMap) CacheLocation() string {
+	return "secret/rv/rds"
+}
+
+func (t VaultToken) expired() bool {
+	return t.Expiration.Before(time.Now())
+}
+
+var baseVaultToken *VaultToken
+
+func tokenConfigFileName() string {
 	home := os.Getenv("HOME")
-	return home + "/.rv.json"
-	
+	return home + "/.rv/.token"
 }
 
-func getConfig() RoleTokens {
-	var rt RoleTokens
-	raw, err := ioutil.ReadFile(configFileName())
+func createNewBaseToken() *VaultToken {
+	c, _ := APIClient()
+	creds, _ := getSessionCredentials()
+	token, _ := getVaultToken(c, creds, "aws-user")
+	baseVaultToken = token
+
+	saveCachedVaultToken("aws-user", token)
+	saveCachedAwsCredentials(creds.IamArn, creds.Credentials)
+	return token
+}
+
+func loadBaseVaultToken() *VaultToken {
+	// If we already have the token cached, get it
+	if baseVaultToken != nil {
+		return baseVaultToken
+	}
+
+	// Try and load it from disk
+	var t *VaultToken = new(VaultToken)
+	raw, err := ioutil.ReadFile(tokenConfigFileName())
 	if err != nil {
-		return rt
+		return createNewBaseToken()
 	}
 
-	json.Unmarshal(raw, &rt)
-	return rt
-}
+	err = json.Unmarshal(raw, t)
 
-func saveToken(role string, token Token) {
-	rt := getConfig()
-	if rt == nil {
-		rt = make(RoleTokens)
+	if err != nil {
+		return createNewBaseToken()
 	}
-	rt[role] = token
-	jsonOut, _ := json.Marshal(rt)
-	ioutil.WriteFile(configFileName(), jsonOut, 0400)
+
+	// Establish a baseline token and cache it
+	if t == nil || (t.expired()) {
+		return createNewBaseToken()
+	}
+
+	baseVaultToken = t
+	return t
 }
 
 func RegisterVaultCommands(app *cli.App) {
 
 	app.Commands = append(app.Commands, cli.Command{
-		Name:		"vault",
-		Usage:		"Vault",
-		Category:	"Vault",
+		Name:     "vault",
+		Usage:    "Vault",
+		Category: "Vault",
 		Subcommands: []cli.Command{
 			{
 				Name: "auth",
@@ -71,32 +140,156 @@ func RegisterVaultCommands(app *cli.App) {
 	})
 }
 
-func GetCachedVaultToken(vaultRole string) (string) {
-	rt := getConfig()
+func vaultServerAddress() string {
+	return getConfigValueString("vault.address")
+}
 
-	if val, ok := rt[vaultRole]; ok {
-		token := val.Token
-		expiry := val.Expiration
+func vaultProxyAddress() string {
+	return getConfigValueString("vault.proxy")
+}
 
-		// Token hasn't yet expired, return saved token
-		if(time.Now().Before(expiry)) {
-			return token
+func readCachedAwsCredentialsList() AwsCredentialsMap {
+	entryMap := make(AwsCredentialsMap)
+
+	// This returns a map[string]interface{}
+	result := readFromVault(entryMap)
+
+	if result != nil {
+		for k, v := range result {
+			var token AwsCredentials
+			entryMap[k] = token.DecodeFromString(v.(string))
+		}
+	}
+	return entryMap
+}
+
+func readFromVault(d Decodeable) map[string]interface{} {
+	c, _ := APIClient()
+	t := loadBaseVaultToken()
+	c.SetToken(t.Token)
+	result, _ := c.Logical().Read(d.CacheLocation())
+	if result == nil {
+		return nil
+	}
+	return result.Data
+}
+
+func readCachedVaultTokenList() VaultTokenMap {
+	tokenMap := make(VaultTokenMap)
+
+	// This returns a map[string]interface{}
+	result := readFromVault(tokenMap)
+
+	if result != nil {
+		for k, v := range result {
+			var token VaultToken
+			tokenMap[k] = token.DecodeFromString(v.(string))
+		}
+	}
+	return tokenMap
+}
+
+func readCachedVaultRDSList() RDSEntryMap {
+	entryMap := make(RDSEntryMap)
+
+	// This returns a map[string]interface{}
+	result := readFromVault(entryMap)
+
+	if result != nil {
+		for k, v := range result {
+			var entry RDSEntry
+			mapstructure.Decode(v, &entry)
+			entryMap[k] = entry
+		}
+	}
+	return entryMap
+}
+
+func getCachedAwsCredentials(arn string) *AwsCredentials {
+	creds := readCachedAwsCredentialsList()
+	if cred, ok := creds[arn]; ok {
+		if !cred.expired() {
+			return &cred
+		}
+	}
+	return nil
+}
+
+func saveCachedAwsCredentials(arn string, creds *AwsCredentials) {
+	credList := readCachedAwsCredentialsList()
+	credList[arn] = *creds
+	//writeCachedAwsCredentialsList(credList)
+	credList.SaveToVault()
+}
+
+func (m AwsCredentialsMap) CacheLocation() string {
+	return "cubbyhole/aws-creds"
+}
+
+func saveToVault(d Decodeable, interfaceTokenMap map[string]interface{}) {
+	c, _ := APIClient()
+	t := loadBaseVaultToken()
+	c.SetToken(t.Token)
+	c.Logical().Write(d.CacheLocation(), interfaceTokenMap)
+}
+
+func (m AwsCredentialsMap) SaveToVault() {
+	interfaceTokenMap := make(map[string]interface{})
+	for k, v := range m {
+		interfaceTokenMap[k] = v.EncodeToString()
+	}
+
+	saveToVault(m, interfaceTokenMap)
+}
+
+func (m VaultTokenMap) SaveToVault() {
+	interfaceTokenMap := make(map[string]interface{})
+	for k, v := range m {
+		interfaceTokenMap[k] = v.EncodeToString()
+	}
+
+	saveToVault(m, interfaceTokenMap)
+}
+
+func getCachedVaultToken(vaultRole string) *VaultToken {
+	t := loadBaseVaultToken()
+
+	if vaultRole == "aws-user" {
+		return t
+	}
+	tokenMap := readCachedVaultTokenList()
+	for k, v := range tokenMap {
+		if k == vaultRole {
+			return &v
 		}
 	}
 
-	return ""
+	return nil
+}
+
+func saveCachedVaultToken(vaultRole string, token *VaultToken) {
+	if token == baseVaultToken {
+		// We are saving the base vault token to disk
+		jsonOut, _ := json.Marshal(token)
+		ioutil.WriteFile(tokenConfigFileName(), jsonOut, 0400)
+		return
+	}
+
+	tokenList := readCachedVaultTokenList()
+	tokenList[vaultRole] = *token
+	tokenList.SaveToVault()
 }
 
 //func auth(c *api.Client, creds *credentials.Credentials) error {
-func GetVaultToken(c *api.Client, creds *sts.Credentials, vaultRole string) (string, error) {
+func getVaultToken(c *api.Client, creds *AwsCredentialsWithCallerArn, vaultRole string) (*VaultToken, error) {
 	if c == nil {
-		return "", fmt.Errorf("api client is nil")
+		return nil, fmt.Errorf("api client is nil")
 	}
 
-	svc, err := NewSTSService(creds)
+	svc, err := NewSTSService(creds.Credentials)
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	var params *sts.GetCallerIdentityInput
@@ -106,11 +299,11 @@ func GetVaultToken(c *api.Client, creds *sts.Credentials, vaultRole string) (str
 
 	headersJSON, err := json.Marshal(stsRequest.HTTPRequest.Header)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	requestBody, err := ioutil.ReadAll(stsRequest.HTTPRequest.Body)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	method := stsRequest.HTTPRequest.Method
@@ -124,50 +317,44 @@ func GetVaultToken(c *api.Client, creds *sts.Credentials, vaultRole string) (str
 		"iam_request_url":         targetURL,
 		"iam_request_headers":     headers,
 		"iam_request_body":        body,
-        "role":                    vaultRole,
+		"role":                    vaultRole,
 	})
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if secret == nil {
-		return "", fmt.Errorf("[vault] - empty response from credential provider")
+		return nil, fmt.Errorf("[vault] - empty response from credential provider")
 	}
-	
-	saveToken(vaultRole, Token{Token: secret.Auth.ClientToken, 
-		Expiration: time.Now().Add(time.Duration(secret.Auth.LeaseDuration)*time.Second)})
 
-	return secret.Auth.ClientToken, nil
+	tk := VaultToken{IamArn: creds.IamArn, Token: secret.Auth.ClientToken,
+		Expiration: time.Now().Add(time.Duration(secret.Auth.LeaseDuration) * time.Second)}
+
+	return &tk, nil
 }
 
 func APIClient() (*api.Client, error) {
 	var httpClient *http.Client
 
-	vaultAddress := "https://vault.reverb.com"
-	overrideAddr, overrideExists := os.LookupEnv("VAULT_ADDR")
-
-	if overrideExists {
-		vaultAddress = overrideAddr
-	}
-
-	vaultProxy := os.Getenv("VAULT_PROXY")
+	vaultAddress := vaultServerAddress()
+	vaultProxy := vaultProxyAddress()
 
 	if vaultProxy != "" {
-		proxyUrl, err := url.Parse(vaultProxy)
+		proxyURL, err := url.Parse(vaultProxy)
 		if err != nil {
 			return nil, err
 		}
 
 		httpClient = &http.Client{
 			Transport: &http.Transport{
-				Proxy: http.ProxyURL(proxyUrl),
+				Proxy: http.ProxyURL(proxyURL),
 			},
 		}
 	}
 
 	config := &api.Config{
-		Address: vaultAddress,
+		Address:    vaultAddress,
 		HttpClient: httpClient,
 	}
 

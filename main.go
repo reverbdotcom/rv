@@ -42,6 +42,7 @@ func main() {
 		},
 	}
 
+	initializeConfiguration()
 	RegisterVaultCommands(app)
 	RegisterIAMCommands(app)
 	RegisterRDSCommands(app)
