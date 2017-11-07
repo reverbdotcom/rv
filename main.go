@@ -4,10 +4,6 @@ import (
 	"os"
 
 	"github.com/urfave/cli"
-
-	"github.com/reverbdotcom/rv/pkg/vault"
-	"github.com/reverbdotcom/rv/pkg/iam"
-	"github.com/reverbdotcom/rv/pkg/rds"
 )
 
 func main() {
@@ -46,9 +42,10 @@ func main() {
 		},
 	}
 
-	vault.RegisterCommands(app)
-	iam.RegisterCommands(app)
-	rds.RegisterCommands(app)
+	initializeConfiguration()
+	RegisterVaultCommands(app)
+	RegisterIAMCommands(app)
+	RegisterRDSCommands(app)
 
 	app.Run(os.Args)
 }

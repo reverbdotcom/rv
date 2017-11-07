@@ -168,9 +168,10 @@ func uniqueNames(list []*Node) {
 func ipAddr(instance *ec2.Instance) string {
 	if instance.PrivateIpAddress == nil {
 		return "UNASSIGNED"
-	} else {
-		return *instance.PrivateIpAddress
 	}
+
+	return *instance.PrivateIpAddress
+
 }
 
 func instanceName(instance *ec2.Instance) string {
