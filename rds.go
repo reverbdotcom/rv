@@ -18,7 +18,7 @@ type RDSCredentials struct {
 }
 
 func (c *RDSCredentials) ConnectionString() string {
-	return fmt.Sprintf("psql postgresql://%s:%s@%s/%s", c.Username, c.Password, c.Host, c.Database)
+	return fmt.Sprintf("postgresql://%s:%s@%s/%s", c.Username, c.Password, c.Host, c.Database)
 }
 
 func (c *RDSCredentials) ConnectionEnvironment() string {

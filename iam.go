@@ -147,8 +147,6 @@ func getCachedSessionCredentials() *AwsCredentialsWithCallerArn {
 	callerIdentity := *result.Arn
 	cachedCred := getCachedAwsCredentials(callerIdentity)
 
-	fmt.Println("in get cached")
-
 	if cachedCred != nil {
 		return &AwsCredentialsWithCallerArn{Credentials: cachedCred, IamArn: callerIdentity}
 	}
@@ -156,6 +154,10 @@ func getCachedSessionCredentials() *AwsCredentialsWithCallerArn {
 	return nil
 }
 
+// This currently only works for aws users.  For instances/containers
+// that will already have session credentials already, need to rework
+// rethink this as they can't call GetSessionToken or will they need
+// MFA.
 func getSessionCredentials() (*AwsCredentialsWithCallerArn, error) {
 	svc := sts.New(session.New())
 

@@ -86,8 +86,14 @@ func tokenConfigFileName() string {
 
 func createNewBaseToken() *VaultToken {
 	c, _ := APIClient()
-	creds, _ := getSessionCredentials()
-	token, _ := getVaultToken(c, creds, "aws-user")
+	creds, err := getSessionCredentials()
+	if err != nil {
+		return nil
+	}
+	token, err := getVaultToken(c, creds, "aws-user")
+	if err != nil {
+		return nil
+	}
 	baseVaultToken = token
 
 	saveCachedVaultToken("aws-user", token)
@@ -164,11 +170,17 @@ func readCachedAwsCredentialsList() AwsCredentialsMap {
 }
 
 func readFromVault(d Decodeable) map[string]interface{} {
-	c, _ := APIClient()
+	c, err := APIClient()
+	if err != nil {
+		return nil
+	}
 	t := loadBaseVaultToken()
+	if t == nil {
+		return nil
+	}
 	c.SetToken(t.Token)
-	result, _ := c.Logical().Read(d.CacheLocation())
-	if result == nil {
+	result, err := c.Logical().Read(d.CacheLocation())
+	if result == nil || err != nil {
 		return nil
 	}
 	return result.Data
@@ -271,7 +283,7 @@ func saveCachedVaultToken(vaultRole string, token *VaultToken) {
 	if token == baseVaultToken {
 		// We are saving the base vault token to disk
 		jsonOut, _ := json.Marshal(token)
-		ioutil.WriteFile(tokenConfigFileName(), jsonOut, 0400)
+		ioutil.WriteFile(tokenConfigFileName(), jsonOut, 0600)
 		return
 	}
 
@@ -283,7 +295,11 @@ func saveCachedVaultToken(vaultRole string, token *VaultToken) {
 //func auth(c *api.Client, creds *credentials.Credentials) error {
 func getVaultToken(c *api.Client, creds *AwsCredentialsWithCallerArn, vaultRole string) (*VaultToken, error) {
 	if c == nil {
-		return nil, fmt.Errorf("api client is nil")
+		return nil, fmt.Errorf("vault api client is nil")
+	}
+
+	if creds == nil {
+		return nil, fmt.Errorf("Error with AWS credentials")
 	}
 
 	svc, err := NewSTSService(creds.Credentials)
