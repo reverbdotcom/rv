@@ -47,7 +47,7 @@ func RegisterRDSCommands(app *cli.App) {
 				},
 			},
 			{
-				Name: "login-command",
+				Name: "login-url",
 				Action: func(c *cli.Context) error {
 					env := c.String("env")
 					db := c.String("db")
