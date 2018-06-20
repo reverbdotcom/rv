@@ -20,9 +20,8 @@ func initializeConfiguration() {
 	viper.AddConfigPath("$HOME/.rv")
 	var configuration Configuration
 
-	if err := viper.ReadInConfig(); err != nil {
-		log.Fatalf("Error reading config file, %s", err)
-	}
+	_ = viper.ReadInConfig()
+
 	err := viper.Unmarshal(&configuration)
 	if err != nil {
 		log.Fatalf("unable to decode into struct, %v", err)
